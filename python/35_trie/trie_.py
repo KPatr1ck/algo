@@ -121,6 +121,42 @@ class Trie:
 
         return True if n.is_ending_char is True else False
 
+    def prefix_search(self, prefix):
+        """
+        通过前缀搜索关键词
+        :param prefix:
+        :return:
+        """
+        ret = []
+        n = self.root
+
+        for c in prefix:
+            if n.get_child(c) is None:
+                return []
+            n = n.get_child(c)
+        for child in n.children:
+            for _ in self.dfs(child, ''):
+                ret.append(prefix + _)
+        return ret
+
+    def dfs(self, node, prefix):
+        """
+        通过dfs搜索关键词
+        :param node:
+        :param prefix:
+        :return:
+        """
+        if len(node.children) == 0:
+            # 递归出口，直接返回上层累积下来的prefix和当前节点数据node.data
+            yield prefix + node.data
+        else:
+            for c in node.children:
+                # 如果子节点是红色的，增加额外的关键词返回
+                if c.is_ending_char and len(c.children) > 0:
+                    yield prefix + node.data + c.data
+                # 前缀更新，继续递归
+                yield from self.dfs(c, prefix + node.data)
+
     def draw_img(self, img_name='Trie.png'):
         """
         画出trie树
@@ -163,8 +199,11 @@ if __name__ == '__main__':
     trie.gen_tree(string_list)
     # trie.draw_img()
 
-    print('\n')
-    print('--- search result ---')
+    print('\n--- search result ---')
     search_string = ['a', 'ab', 'abc', 'abcc', 'abe', 'P@trick', 'P@tric', 'Patrick']
     for ss in search_string:
         print('[pattern]: {}'.format(ss), '[result]: {}'.format(trie.search(ss)))
+
+    print('\n--- prefix search ---')
+    prefix = 'ab'
+    print('[prefix]: {}'.format(prefix), '[result]: {}'.format(trie.prefix_search(prefix)))
