@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-from queue import PriorityQueue
 from typing import List, IO
+import heapq
 import pygraphviz as pgv
 
 OUTPUT_PATH = 'C:/Users/gz1301/'
@@ -50,6 +50,27 @@ class Edge:
         self.w = weight
 
 
+class VertexPriorityQueue:
+    def __init__(self) -> None:
+        self.vertices = []
+
+    def get(self) -> Vertex:
+        return heapq.heappop(self.vertices)
+
+    def put(self, v: Vertex) -> None:
+        self.vertices.append(v)
+        self.update_priority()
+
+    def empty(self):
+        return len(self.vertices) == 0
+
+    def update_priority(self):
+        heapq.heapify(self.vertices)
+
+    def __repr__(self):
+        return str(self.vertices)
+
+
 def dijkstra(g: Graph, s: int, t: int) -> int:
     """
     dijkstra = 穷举 + 优先级队列
@@ -60,7 +81,7 @@ def dijkstra(g: Graph, s: int, t: int) -> int:
     """
     size = len(g)
 
-    pq = PriorityQueue(size)    # 节点队列
+    pq = VertexPriorityQueue()  # 节点队列
     in_queue = [False] * size   # 已入队标记
     vertices = [                # 需要随时更新离s的最短距离的节点列表
         Vertex(v, float('inf')) for v in range(size)
@@ -72,17 +93,19 @@ def dijkstra(g: Graph, s: int, t: int) -> int:
     in_queue[s] = True
 
     while not pq.empty():
-        print('cur queue: ', pq)
+        # print('cur queue: ', pq)
         v = pq.get()
-        print('get vertex: ', v)
+        # print('get vertex: ', v)
         if v.id == t:
             break
         for edge in g.adj[v.id]:
             if v.dist + edge.w < vertices[edge.t].dist:
-                # TODO: pq更新了队列中的元素的优先级之后，不会堆化
-                # TODO: 需要自己维护一个小顶堆
+                # 当你pq中的元素的优先级后：
+                # 1. 有入队操作：触发了pq的堆化，此后出队可以取到优先级最高的顶点
+                # 2. 无入队操作：此后出队取到的顶点可能不是优先级最高的，会有bug
                 vertices[edge.t].dist = v.dist + edge.w
                 predecessor[edge.t] = v.id
+                pq.update_priority()        # 更新堆结构
             if not in_queue[edge.t]:
                 pq.put(vertices[edge.t])
                 in_queue[edge.t] = True
@@ -115,3 +138,14 @@ if __name__ == '__main__':
     g.add_edge(4, 5, 10)
     g.draw_graph()
     print(dijkstra(g, 0, 5))
+
+    # 下面这个用例可以暴露更新队列元素优先级的问题
+    # g = Graph(4)
+    # g.add_edge(0, 1, 18)
+    # g.add_edge(0, 2, 3)
+    # g.add_edge(2, 1, 1)
+    # g.add_edge(1, 3, 5)
+    # g.add_edge(2, 3, 8)
+    # g.add_edge(0, 3, 15)
+    # g.draw_graph()
+    # print(dijkstra(g, 0, 3))
